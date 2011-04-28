@@ -95,7 +95,7 @@ class OAuth(webapp.RequestHandler):
       #   existingCheckin = Checkin.get_by_key_name(item['venue']['id'])
       #   existingCheckin.this_checkins_count = existingCheckin.this_checkins_count + 1
       #   existingCheckin.put()
-
+      # test
     doRender(self, 'results.html', {'profile_photo' : token.fs_photo} )    
 
 class GetConfig(webapp.RequestHandler):
