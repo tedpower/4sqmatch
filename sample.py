@@ -41,7 +41,7 @@ class Checkin(db.Model):
   """A very simple checkin object, with a denormalized userid for querying."""
   fs_id = db.StringProperty()
   fs_name = db.StringProperty()
-  this_checkins_count = db.IntegerProperty()
+  fs_user_id_list = db.StringListProperty()
 
 def fetchJson(url, dobasicauth = False):
   """Does a GET to the specified URL and returns a dict representing its reply."""
@@ -77,26 +77,40 @@ class OAuth(webapp.RequestHandler):
     token.fs_gender         = self_response['response']['user']['gender']
     token.fs_homeCity       = self_response['response']['user']['homeCity']
     token.fs_email          = self_response['response']['user']['contact']['email']
-    token.fs_twitter        = self_response['response']['user']['contact']['twitter']
     token.fs_checkins_count = self_response['response']['user']['checkins']['count']
+    # if self_response['response']['user']['contact']['twitter']:
+    #   token.fs_twitter = self_response['response']['user']['contact']['twitter']
+
     token.put()
 
     json = fetchJson('%s/v2/users/self/checkins?limit=16&oauth_token=%s' % (config['api_server'], token.token))  
     venue_list = json['response']['checkins']['items']
 
+    myLocalList = []
+    
     for item in venue_list:
-      # if Checkin.get_by_key_name(item['venue']['id']) == None
-      myCheckin = Checkin(key_name=item['venue']['id'])
-      myCheckin.fs_name = item['venue']['name']
-      myCheckin.fs_id = item['venue']['id']
-      myCheckin.this_checkins_count = 1
-      myCheckin.put()
-      # else
-      #   existingCheckin = Checkin.get_by_key_name(item['venue']['id'])
-      #   existingCheckin.this_checkins_count = existingCheckin.this_checkins_count + 1
-      #   existingCheckin.put()
+      # logging.info('the id is ' + item['venue']['id'])
+      key_str = item['venue']['id']
 
-    doRender(self, 'results.html', {'profile_photo' : token.fs_photo} )    
+      if Checkin.get_by_key_name(str(key_str)) == None:
+        myCheckin = Checkin(key_name=key_str)
+        myCheckin.fs_name = item['venue']['name']
+        myCheckin.fs_id = item['venue']['id']
+        myCheckin.fs_user_id_list.append(token.fs_id)
+        myCheckin.put()
+      else:
+        myCheckin = Checkin.get_by_key_name(str(key_str))
+        myCheckin.fs_name = item['venue']['name']
+        myCheckin.fs_id = item['venue']['id']
+        myCheckin.fs_user_id_list.append(token.fs_id)
+        myCheckin.put()
+        myLocalList.append(key_str)
+
+    for item in myLocalList:
+      logging.info(item)
+      
+    doRender(self, 'results.html', {'profile_photo' : token.fs_photo,
+                                    'places' : myLocalList} )    
 
 class GetConfig(webapp.RequestHandler):
   """Returns the OAuth URI as JSON so the constants aren't in two places."""

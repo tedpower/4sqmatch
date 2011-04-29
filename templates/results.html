@@ -11,7 +11,11 @@
 
 <img src="{{ profile_photo }}">
 
-<h1>BAMz</h1>
+{% for place in places %}
+<p>{{ place }}</p>
+{% endfor %}
+
+<h1>BAM</h1>
 
 </body>
 </html>
