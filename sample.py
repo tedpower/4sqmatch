@@ -22,7 +22,7 @@ config = {'server':'https://foursquare.com',
           'client_id': '52AMDL0AMLMSQVYNG3FQYBXM4AF4N1THF5RBSQE5SIVQ4KOB',
           'client_secret': 'MMNBUFQBGX5SAOLXF4U002FJFKLG2V41HSRNY5W1S1C1QOBJ'}
 
-class UserToken(db.Model):
+class FS_User(db.Model):
   """Contains the user to foursquare_id + oauth token mapping."""
   user = db.UserProperty()
   fs_id = db.StringProperty()
@@ -37,7 +37,7 @@ class UserToken(db.Model):
   fs_checkins_count = db.IntegerProperty()
   last_updated = db.DateTimeProperty(auto_now_add=True)
 
-class Checkin(db.Model):
+class FS_Place(db.Model):
   """A very simple checkin object, with a denormalized userid for querying."""
   fs_id = db.StringProperty()
   fs_name = db.StringProperty()
@@ -65,7 +65,7 @@ class OAuth(webapp.RequestHandler):
 
     self_response = fetchJson('%s/v2/users/self?oauth_token=%s' % (config['api_server'], json['access_token']))
 
-    token = UserToken(key_name=self_response['response']['user']['id'])
+    token = FS_User(key_name=self_response['response']['user']['id'])
     token.token = json['access_token']
     token.user = users.get_current_user()
     
@@ -78,8 +78,7 @@ class OAuth(webapp.RequestHandler):
     token.fs_homeCity       = self_response['response']['user']['homeCity']
     token.fs_email          = self_response['response']['user']['contact']['email']
     token.fs_checkins_count = self_response['response']['user']['checkins']['count']
-    # if self_response['response']['user']['contact']['twitter']:
-    #   token.fs_twitter = self_response['response']['user']['contact']['twitter']
+    # TODO add some sort of check before adding twitter
 
     token.put()
 
@@ -92,25 +91,50 @@ class OAuth(webapp.RequestHandler):
       # logging.info('the id is ' + item['venue']['id'])
       key_str = item['venue']['id']
 
-      if Checkin.get_by_key_name(str(key_str)) == None:
-        myCheckin = Checkin(key_name=key_str)
+      if FS_Place.get_by_key_name(str(key_str)) == None:
+        myCheckin = FS_Place(key_name=key_str)
         myCheckin.fs_name = item['venue']['name']
         myCheckin.fs_id = item['venue']['id']
         myCheckin.fs_user_id_list.append(token.fs_id)
         myCheckin.put()
       else:
-        myCheckin = Checkin.get_by_key_name(str(key_str))
+        myCheckin = FS_Place.get_by_key_name(str(key_str))
         myCheckin.fs_name = item['venue']['name']
         myCheckin.fs_id = item['venue']['id']
-        myCheckin.fs_user_id_list.append(token.fs_id)
+        if token.fs_id not in myCheckin.fs_user_id_list:
+          myCheckin.fs_user_id_list.append(token.fs_id)
+          if key_str not in myLocalList:
+            myLocalList.append(key_str)
+        if token.fs_id in myCheckin.fs_user_id_list and len(myCheckin.fs_user_id_list) > 1:
+          if key_str not in myLocalList:
+            myLocalList.append(key_str)
         myCheckin.put()
-        myLocalList.append(key_str)
 
+    # Ok now take that list of places with overlap, and get the people
+    
+    listOfPeopleOverlap = {}
+    
     for item in myLocalList:
-      logging.info(item)
+      # go through the places and get the list of people
+      currentCheckinList = FS_Place.get_by_key_name(str(item)).fs_user_id_list
+      # Add each person along with a list of the places in common
+      for person in currentCheckinList:
+        if person != token.fs_id:
+          if person not in listOfPeopleOverlap:
+            personDict = {}
+            personDict['user'] = FS_User.get_by_key_name(str(person))
+            personDict['places_list'] = [FS_Place.get_by_key_name(str(item))]
+            personDict['places_count'] = 1
+            listOfPeopleOverlap[person] = personDict
+          else:
+            listOfPeopleOverlap[person]['places_list'].append(FS_Place.get_by_key_name(str(item)))
+            listOfPeopleOverlap[person]['places_count'] = personDict['places_count'] + 1
       
+    # sort the list by popularity, with number
+    # for k, v in listOfPeopleOverlap.items():
+    
     doRender(self, 'results.html', {'profile_photo' : token.fs_photo,
-                                    'places' : myLocalList} )    
+                                    'places' : listOfPeopleOverlap} )    
 
 class GetConfig(webapp.RequestHandler):
   """Returns the OAuth URI as JSON so the constants aren't in two places."""

@@ -11,8 +11,20 @@
 
 <img src="{{ profile_photo }}">
 
-{% for place in places %}
-<p>{{ place }}</p>
+
+{% for person in places.items %}
+	{% for thing in person.1.items %}
+		<p>
+		{% ifequal thing.0 "user" %}
+			<img src="{{ thing.1.fs_photo }}">
+		{% endifequal %}
+		{% ifequal thing.0 "places_list" %}
+			{% for thisplace in thing.1 %}
+				{{ thisplace.fs_name }}
+			{% endfor %}
+		{% endifequal %}
+		</p>
+	{% endfor %}
 {% endfor %}
 
 <h1>BAM</h1>
