@@ -3,17 +3,16 @@
 import cgi
 import logging
 import urllib2
-
 from django.utils import simplejson
-
 from google.appengine.api import users
 from google.appengine.ext import db
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
-            
 import os
 from google.appengine.ext.webapp import template
 import datetime
+import time
+import calendar
 
 # prod
 config = {'server':'https://foursquare.com',
@@ -24,7 +23,6 @@ config = {'server':'https://foursquare.com',
 
 class FS_User(db.Model):
   """Contains the user to foursquare_id + oauth token mapping."""
-  user = db.UserProperty()
   fs_id = db.StringProperty()
   token = db.StringProperty()
   fs_firstName = db.StringProperty()
@@ -35,6 +33,7 @@ class FS_User(db.Model):
   fs_email = db.StringProperty()
   fs_twitter = db.StringProperty()
   fs_checkins_count = db.IntegerProperty()
+  user_place_index = db.StringListProperty()
   last_updated = db.DateTimeProperty(auto_now_add=True)
 
 class FS_Place(db.Model):
@@ -60,81 +59,104 @@ class OAuth(webapp.RequestHandler):
     args = dict(config)
     args['code'] = code
     url = ('%(server)s/oauth2/access_token?client_id=%(client_id)s&client_secret=%(client_secret)s&grant_type=authorization_code&redirect_uri=%(redirect_uri)s&code=%(code)s' % args)
-  
     json = fetchJson(url, config['server'].find('foursquare.com') != 1)
-
     self_response = fetchJson('%s/v2/users/self?oauth_token=%s' % (config['api_server'], json['access_token']))
 
-    token = FS_User(key_name=self_response['response']['user']['id'])
-    token.token = json['access_token']
-    token.user = users.get_current_user()
+    # if the person exists, pull all, else pull the diff
+    numberToPull = 0
+    currentUser = FS_User()
+    currentUserId = str(self_response['response']['user']['id'])
     
-    token.fs_id = self_response['response']['user']['id']
-    
-    token.fs_firstName      = self_response['response']['user']['firstName']
-    token.fs_lastName       = self_response['response']['user']['lastName']
-    token.fs_photo          = self_response['response']['user']['photo'].replace('_thumbs','')
-    token.fs_gender         = self_response['response']['user']['gender']
-    token.fs_homeCity       = self_response['response']['user']['homeCity']
-    token.fs_email          = self_response['response']['user']['contact']['email']
-    token.fs_checkins_count = self_response['response']['user']['checkins']['count']
-    # TODO add some sort of check before adding twitter
+    if FS_User.get_by_key_name(currentUserId) == None:
+      currentUser = FS_User(key_name=currentUserId)
+      updateUser(currentUser, json, self_response)
+      numberToPull = currentUser.fs_checkins_count
+    else:
+      currentUser = FS_User.get_by_key_name(currentUserId)
+      numberToPull = currentUser.fs_checkins_count
+      updateUser(currentUser, json, self_response)
+      numberToPull = currentUser.fs_checkins_count - numberToPull
 
-    token.put()
+    # now update the check-ins
+    logging.info("going to pull " + str(numberToPull) + " checkins")
+    if numberToPull > 0:
+      updateCheckins(numberToPull, currentUser, 0)
 
-    json = fetchJson('%s/v2/users/self/checkins?limit=16&oauth_token=%s' % (config['api_server'], token.token))  
-    venue_list = json['response']['checkins']['items']
-
-    myLocalList = []
-    
-    for item in venue_list:
-      # logging.info('the id is ' + item['venue']['id'])
-      key_str = item['venue']['id']
-
-      if FS_Place.get_by_key_name(str(key_str)) == None:
-        myCheckin = FS_Place(key_name=key_str)
-        myCheckin.fs_name = item['venue']['name']
-        myCheckin.fs_id = item['venue']['id']
-        myCheckin.fs_user_id_list.append(token.fs_id)
-        myCheckin.put()
-      else:
-        myCheckin = FS_Place.get_by_key_name(str(key_str))
-        myCheckin.fs_name = item['venue']['name']
-        myCheckin.fs_id = item['venue']['id']
-        if token.fs_id not in myCheckin.fs_user_id_list:
-          myCheckin.fs_user_id_list.append(token.fs_id)
-          if key_str not in myLocalList:
-            myLocalList.append(key_str)
-        if token.fs_id in myCheckin.fs_user_id_list and len(myCheckin.fs_user_id_list) > 1:
-          if key_str not in myLocalList:
-            myLocalList.append(key_str)
-        myCheckin.put()
-
-    # Ok now take that list of places with overlap, and get the people
-    
+    # Ok now take that list of this user's places, and see which have overlap
     listOfPeopleOverlap = {}
     
-    for item in myLocalList:
+    for item in currentUser.user_place_index:
       # go through the places and get the list of people
-      currentCheckinList = FS_Place.get_by_key_name(str(item)).fs_user_id_list
+      currentCheckinList = FS_Place.get_by_key_name(item).fs_user_id_list
       # Add each person along with a list of the places in common
       for person in currentCheckinList:
-        if person != token.fs_id:
+        if person != currentUser.fs_id:
           if person not in listOfPeopleOverlap:
             personDict = {}
-            personDict['user'] = FS_User.get_by_key_name(str(person))
-            personDict['places_list'] = [FS_Place.get_by_key_name(str(item))]
+            personDict['user'] = FS_User.get_by_key_name(person)
+            personDict['places_list'] = {item:1}
             personDict['places_count'] = 1
             listOfPeopleOverlap[person] = personDict
           else:
-            listOfPeopleOverlap[person]['places_list'].append(FS_Place.get_by_key_name(str(item)))
-            listOfPeopleOverlap[person]['places_count'] = personDict['places_count'] + 1
+            # check to see if its there before adding it.  if it is there, just increment the count
+            listOfPeopleOverlap[person]['places_list']
+            if item not in listOfPeopleOverlap[person]['places_list']:
+              listOfPeopleOverlap[person]['places_list'][item] = 1
+              listOfPeopleOverlap[person]['places_count'] += 1
+            else:
+              listOfPeopleOverlap[person]['places_list'][item] += 1
       
     # sort the list by popularity, with number
     # for k, v in listOfPeopleOverlap.items():
     
-    doRender(self, 'results.html', {'profile_photo' : token.fs_photo,
+    doRender(self, 'results.html', {'profile_photo' : currentUser.fs_photo,
                                     'places' : listOfPeopleOverlap} )    
+
+def updateUser(currentUser, json, self_response):
+  currentUser.token             = json['access_token']
+  currentUser.fs_id             = self_response['response']['user']['id']
+  currentUser.fs_firstName      = self_response['response']['user']['firstName']
+  currentUser.fs_lastName       = self_response['response']['user']['lastName']
+  currentUser.fs_photo          = self_response['response']['user']['photo'].replace('_thumbs','')
+  currentUser.fs_gender         = self_response['response']['user']['gender']
+  currentUser.fs_homeCity       = self_response['response']['user']['homeCity']
+  currentUser.fs_email          = self_response['response']['user']['contact']['email']
+  currentUser.fs_checkins_count = self_response['response']['user']['checkins']['count']
+  # TODO add some sort of check before adding twitter
+  currentUser.put()
+   
+def updateCheckins(numberToPull, currentUser, offset):
+
+  pullThisBatch = 0
+  if numberToPull > 100:
+    pullThisBatch = 100
+  else:
+    pullThisBatch = numberToPull
+  
+  json = fetchJson('%s/v2/users/self/checkins?limit=%s&offset=%s&oauth_token=%s' % (config['api_server'], pullThisBatch, offset, currentUser.token))  
+  venue_list = json['response']['checkins']['items']
+
+  for item in venue_list:
+    if 'venue' in item:
+      key_str = item['venue']['id']
+      if FS_Place.get_by_key_name(key_str) == None:
+        myCheckin = FS_Place(key_name=key_str)
+        myCheckin.fs_name = item['venue']['name']
+        myCheckin.fs_id = item['venue']['id']
+        myCheckin.fs_user_id_list.append(currentUser.fs_id)
+        myCheckin.put()
+      else:
+        myCheckin = FS_Place.get_by_key_name(key_str)
+        myCheckin.fs_user_id_list.append(currentUser.fs_id)
+        myCheckin.put()
+      if key_str not in currentUser.user_place_index:
+        currentUser.user_place_index.append(key_str)
+  currentUser.put()
+    
+  if (numberToPull - pullThisBatch) > 0:
+    updateCheckins((numberToPull - pullThisBatch), currentUser, (offset + pullThisBatch))
+  else:
+    return
 
 class GetConfig(webapp.RequestHandler):
   """Returns the OAuth URI as JSON so the constants aren't in two places."""

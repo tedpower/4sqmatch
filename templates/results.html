@@ -9,25 +9,27 @@
 </head>
 <body>
 
+<h1>You are</h1>
 <img src="{{ profile_photo }}">
 
-
+<h2>People you overlap with</h2>
 {% for person in places.items %}
+	<div>
 	{% for thing in person.1.items %}
-		<p>
 		{% ifequal thing.0 "user" %}
-			<img src="{{ thing.1.fs_photo }}">
+			<img src="{{ thing.1.fs_photo }}"> {{ thing.1.fs_firstName }}
 		{% endifequal %}
 		{% ifequal thing.0 "places_list" %}
-			{% for thisplace in thing.1 %}
-				{{ thisplace.fs_name }}
+			{% for thisplace in thing.1.items %}
+				{{ thisplace.0 }} ({{thisplace.1}}x), 
 			{% endfor %}
 		{% endifequal %}
-		</p>
+		{% ifequal thing.0 "places_count" %}
+			<div><b>{{ thing.1 }} places</b></div>
+		{% endifequal %}
 	{% endfor %}
+	</div><hr/>
 {% endfor %}
-
-<h1>BAM</h1>
 
 </body>
 </html>
