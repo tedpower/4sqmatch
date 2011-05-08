@@ -19,11 +19,11 @@
 		{% ifequal thing.0 "user" %}
 			<img src="{{ thing.1.fs_photo }}"> {{ thing.1.fs_firstName }}
 		{% endifequal %}
-		{% ifequal thing.0 "places_list" %}
+		<!-- {% ifequal thing.0 "places_list" %}
 			{% for thisplace in thing.1.items %}
 				{{ thisplace.0 }} ({{thisplace.1}}x), 
 			{% endfor %}
-		{% endifequal %}
+		{% endifequal %} -->
 		{% ifequal thing.0 "places_count" %}
 			<div><b>{{ thing.1 }} places</b></div>
 		{% endifequal %}
