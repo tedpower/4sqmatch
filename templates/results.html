@@ -16,15 +16,15 @@
 {% for person in places.items %}
 	<div>
 	{% for thing in person.1.items %}
-		{% ifequal thing.0 "user" %}
+		{% ifequal thing.0 "a_user" %}
 			<img src="{{ thing.1.fs_photo }}"> {{ thing.1.fs_firstName }}
 		{% endifequal %}
-		<!-- {% ifequal thing.0 "places_list" %}
-			{% for thisplace in thing.1.items %}
-				{{ thisplace.0 }} ({{thisplace.1}}x), 
+		{% ifequal thing.0 "b_places_list" %}
+			{% for thisplace in thing.1 %}
+				{{ thisplace.place_name }} y:{{thisplace.my_count}}x t:{{thisplace.their_count}}x, 
 			{% endfor %}
-		{% endifequal %} -->
-		{% ifequal thing.0 "places_count" %}
+		{% endifequal %}
+		{% ifequal thing.0 "c_places_count" %}
 			<div><b>{{ thing.1 }} places</b></div>
 		{% endifequal %}
 	{% endfor %}
