@@ -1,0 +1,129 @@
+/* Reset styles */
+
+html, body, div, span, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+abbr, address, cite, code, del, dfn, em, img, ins, kbd, q, samp,
+small, strong, sub, sup, var, b, i, dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, figcaption, figure,
+footer, header, hgroup, menu, nav, section, summary,
+time, mark, audio, video {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+
+/*logged out*/
+
+#loggedOutHomepage {
+	text-align: center;
+}
+
+#logo {
+	margin: 120px 0 0 0;
+}
+
+#auth {
+	margin: 40px;
+	height: 48px;
+}
+
+/* Main */
+
+body {
+	font: 13px sans-serif;
+	background-color: #EBEBEB;
+}
+
+#people img {
+	width: 120px;
+	/*height: auto;*/
+	height: 120px;
+}
+
+#fixed {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	bottom: 20px;
+	width: 340px;
+	background-color: #2E2E2E;
+	color: white;
+	padding: 20px;
+	overflow: auto;
+}
+
+#people {
+	margin-right: 400px;
+	padding: 20px 0 0 20px;
+}
+
+.candidate {
+	float: left;
+	background-color: #fff;
+	width: 120px;
+	margin: 0 20px 20px 0;
+	padding: 5px;
+	border: 5px solid #EBEBEB;
+}
+
+#you {
+	overflow: auto;
+	padding: 5px;
+}
+
+#you img {
+	float: left;
+	background-color: white;
+	padding: 5px;
+	margin-right: 20px;
+}
+
+#welcomeMessage {
+	float: left;
+	margin: 20px 0 0 0;
+}
+
+#them {
+	padding: 20px 0 0 0;
+}
+/* Candidate column */
+
+.name {
+	font-weight: bold;
+}
+
+/* Typography */
+
+
+#you h2 {
+	background-color: #FF3366;
+}
+
+#them h2 {
+	background-color: #00CCFF;
+}
+
+
+
+
+
+
+
+/*scrollbars*/
+
+#fixed::-webkit-scrollbar {width:16px;height:16px;}
+
+#fixed::-webkit-scrollbar-button:start:decrement,
+#fixed::-webkit-scrollbar-button:end:increment {display:block;height:18px;}
+
+#fixed::-webkit-scrollbar-button:vertical:start:increment,
+#fixed::-webkit-scrollbar-button:vertical:end:decrement {display:none;}
+
+#fixed::-webkit-scrollbar-track:vertical {min-height:125px;-webkit-border-image:url(scrollbar_track.png) 16 0;border-color:transparent;border-width:16px 0;}
+
+#fixed::-webkit-scrollbar-thumb:vertical {min-height:56px;-webkit-border-image: url(scrollbar_thumb.png) 16 0;border-color:transparent;border-width:16px 0;}

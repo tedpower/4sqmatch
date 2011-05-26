@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<title>untitled</title>
+	<LINK REL=StyleSheet href="static/style.css" TYPE="text/css" MEDIA=screen>
+  	<script src="http://code.jquery.com/jquery-latest.js"></script>
+	<script>
+	$(document).ready(function() {
+	    $("#test").hover(function () {
+		    $("#places").hide("slow");
+	    	$("#places2").show("slow");
+	    });
+	    $("#test2").hover(function () {
+		    $("#places2").hide("slow");
+	    	$("#places").show("slow");
+	    });
+	});
+	</script>
+</head>
+<body>
+
+	<div id="fixed">
+		<div id="places">
+			Bite                                                <br/>
+			Newark Liberty International Airport (EWR)          <br/>
+			Peels                                               <br/>
+			East Village Thai                                   <br/>
+			The Scratcher                                       <br/>
+			Jo’s Coffee (1x), Pulino’s                          <br/>
+			foursquare HQ                                       <br/>
+			Baoguette Cafe (4x)                                 <br/>
+			Berry Park (1x)                                     <br/>
+			The Smith (1x)                                      <br/>
+			Russ & Daughters (1x)                               <br/>
+			La Colombe Torrefaction (1x)                        <br/>
+			Austin Bergstrom International Airport...           <br/>
+			Bowery Beef (1x)                                    <br/>
+			Paul’s “Da Burger Joint” (1x)                       <br/>
+			Nyonya (1x)                                         <br/>
+			‘wichcraft (1x)                                     <br/>
+			Macao Trading Co. (1x)                              <br/>
+			Abraço (2x)                                         <br/>
+			Hecho en Dumbo (1x)                                 <br/>
+			The Smile (2x)                                      <br/>
+			Think Coffee (1x)                                   <br/>
+			The Mud Truck (16x)                                 <br/>
+			Pho 32 & Shabu (2x)                                 <br/>
+			Hampton Chutney Co. (1x)                            <br/>
+			Chipotle Mexican Grill (5x)                         <br/>
+			Oaxaca (2x)                                         <br/>
+			Hotel San Jose (1x)                                 <br/>
+			Austin Bergstrom International Airport...           <br/>
+			Bowery Beef (1x)                                    <br/>
+			Paul’s “Da Burger Joint” (1x)                       <br/>
+			Nyonya (1x)                                         <br/>
+			‘wichcraft (1x)                                     <br/>
+			Macao Trading Co. (1x)                              <br/>
+			Abraço (2x)                                         <br/>
+			Hecho en Dumbo (1x)                                 <br/>
+			The Smile (2x)                                      <br/>
+			Think Coffee (1x)                                   <br/>
+			The Mud Truck (16x)                                 <br/>
+			Pho 32 & Shabu (2x)                                 <br/>
+			Hampton Chutney Co. (1x)                            <br/>
+			Chipotle Mexican Grill (5x)                         <br/>
+			Oaxaca (2x)                                         <br/>
+			Hotel San Jose (1x)                                 <br/>
+			Boka/Bon Chon (1x)
+		</div>
+		<div id="places2" style="display:none;">
+			hey there
+		</div>
+		
+	</div>
+
+	<div id="people">
+		<div id="you">
+			<img src="tempImg/1.png" width="270" height="285" alt="1">
+			<div id="welcomeMessage">
+				<div class="name">Hi Ted</div>
+				<p>you've been to 400 places</p>
+				<p>Here are some soulmates:</p>
+			</div>
+		</div>
+		<div id="them">
+			<div class="candidate">
+				<img src="tempImg/2.png" width="100" height="100" alt="2">
+				<div class="name">Honora D.</div>
+				<div class="overlapCount">74 place matches</div>
+			</div>
+			<div class="candidate" id="test">
+				<img src="tempImg/2.png" width="100" height="100" alt="2">
+				<div class="name">Honora D.</div>
+				<div class="overlapCount">74 place matches</div>
+			</div>
+			<div class="candidate" id="test2">
+				<img src="tempImg/2.png" width="100" height="100" alt="2">
+				<div class="name">Honora D.</div>
+				<div class="overlapCount">74 place matches</div>
+			</div>
+			<div class="candidate">
+				<img src="tempImg/2.png" width="100" height="100" alt="2">
+				<div class="name">Honora D.</div>
+				<div class="overlapCount">74 place matches</div>
+			</div>
+			<div class="candidate">
+				<img src="tempImg/2.png" width="100" height="100" alt="2">
+				<div class="name">Honora D.</div>
+				<div class="overlapCount">74 place matches</div>
+			</div>
+			<div class="candidate">
+				<img src="tempImg/2.png" width="100" height="100" alt="2">
+				<div class="name">Honora D.</div>
+				<div class="overlapCount">74 place matches</div>
+			</div>
+			<div class="candidate">
+				<img src="tempImg/2.png" width="100" height="100" alt="2">
+				<div class="name">Honora D.</div>
+				<div class="overlapCount">74 place matches</div>
+			</div>
+		</div>
+	</div>
+
+</body>
+</html>

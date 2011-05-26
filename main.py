@@ -38,7 +38,7 @@ class FS_User(db.Model):
   last_updated = db.DateTimeProperty(auto_now_add=True)
 
 class FS_Place(db.Model):
-  # A very simple checkin object, with a denormalized userid for querying
+  # A foursquare place, with the list of people who've been there
   fs_name = db.StringProperty()
   fs_user_id_list = db.StringListProperty()
 
@@ -46,12 +46,17 @@ class User_Place_Count(db.Model):
   # A simple count of checkins for a user at a place
   place_count = db.IntegerProperty()
 
-class User_Overlap(db.Model):
-  # Not stored, the object that we return
+class Me_Them_Count(db.Model):
+  # The overlap between the current user, another user, and a single place
   place_name = db.StringProperty()
   my_count = db.IntegerProperty()
   their_count = db.IntegerProperty()
   combined_count = db.IntegerProperty()
+
+class User_Overlap (db.Model):
+  total_places_list = db.StringListProperty()
+  total_places_count = db.IntegerProperty()
+  user_key = db.StringProperty()
 
 def fetchJson(url, dobasicauth = False):
   # Does a GET to the specified URL and returns a dict representing its reply
@@ -67,7 +72,7 @@ class OAuth(webapp.RequestHandler):
 
   def get(self):
     
-    ######### DANGER!  this empties the datastore ##############
+    ######### DANGER! this empties the datastore ##############
     # query = db.GqlQuery("SELECT * FROM FS_Place")
     # for a in query:
     #   db.delete(a)
@@ -115,21 +120,21 @@ class OAuth(webapp.RequestHandler):
       for visitor in visitors:
         if visitor != currentUser.fs_id:
           # create a user overlap object
-          newUserOverlap = User_Overlap()
-          newUserOverlap.place_name = FS_Place.get_by_key_name(place).fs_name
-          newUserOverlap.my_count = User_Place_Count.get_by_key_name(currentUser.fs_id + place).place_count
-          newUserOverlap.their_count = User_Place_Count.get_by_key_name(visitor + place).place_count
-          newUserOverlap.combined_count = newUserOverlap.my_count + newUserOverlap.their_count
+          newMeThemCount = Me_Them_Count()
+          newMeThemCount.place_name = FS_Place.get_by_key_name(place).fs_name
+          newMeThemCount.my_count = User_Place_Count.get_by_key_name(currentUser.fs_id + place).place_count
+          newMeThemCount.their_count = User_Place_Count.get_by_key_name(visitor + place).place_count
+          newMeThemCount.combined_count = newMeThemCount.my_count + newMeThemCount.their_count
           if visitor not in dictOfPeopleOverlap:
             # if the the person isn't yet known to be someone with overlap, add them
             personDict = {}
             personDict['a_user'] = FS_User.get_by_key_name(visitor)
-            personDict['b_places_list'] = [newUserOverlap]
+            personDict['b_places_list'] = [newMeThemCount]
             personDict['c_places_count'] = 1
             dictOfPeopleOverlap[visitor] = personDict
           else:
             # ok the visitor is in the list, now add the place
-            dictOfPeopleOverlap[visitor]['b_places_list'].append(newUserOverlap)
+            dictOfPeopleOverlap[visitor]['b_places_list'].append(newMeThemCount)
             dictOfPeopleOverlap[visitor]['c_places_count'] += 1
 
     
@@ -165,9 +170,14 @@ def updateHistory(timestamp, currentUser):
     key_str = place['venue']['id']
     combinedKey = currentUser.fs_id + key_str
     # add or update the association between the person and the place
-    newUserPlaceCount = User_Place_Count.get_or_insert(combinedKey)
-    newUserPlaceCount.place_count = place['beenHere']
-    newUserPlaceCount.put()
+    if User_Place_Count.get_by_key_name(combinedKey) == None:      
+      newUserPlaceCount = User_Place_Count(key_name=combinedKey)
+      newUserPlaceCount.place_count = place['beenHere']
+      newUserPlaceCount.put()
+    else:
+      newUserPlaceCount = User_Place_Count.get_by_key_name(combinedKey)
+      newUserPlaceCount.place_count += place['beenHere']
+      newUserPlaceCount.put()
     # If the place isn't yet in the db, add it
     if FS_Place.get_by_key_name(key_str) == None:
       newPlace = FS_Place(key_name=key_str)
@@ -180,7 +190,7 @@ def updateHistory(timestamp, currentUser):
       if currentUser.fs_id not in existingPlace.fs_user_id_list:
         existingPlace.fs_user_id_list.append(currentUser.fs_id)
         existingPlace.put()
-    # and to wrap things up, we add the place to the user's list of places
+    # and to wrap things up, we add the place to the user's personal list of places
     if key_str not in currentUser.user_place_index:
       currentUser.user_place_index.append(key_str)
   # update the time stamp so we know when this person last updated

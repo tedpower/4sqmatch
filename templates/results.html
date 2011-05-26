@@ -5,31 +5,51 @@
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>untitled</title>
-
+	<LINK REL=StyleSheet href="./static/style.css" TYPE="text/css" MEDIA=screen>
 </head>
 <body>
 
-<h1>You are</h1>
-<img src="{{ profile_photo }}">
 
-<h2>People you overlap with</h2>
+<div id="people">
+	<div id="you">
+		<img src="{{ profile_photo }}">
+		<div id="welcomeMessage">
+			<div class="name">Hi Ted</div>
+			<p>you've been to 400 places</p>
+			<p>Here are some soulmates:</p>
+		</div>
+	</div>
+	<div id="them">
+	
 {% for person in places.items %}
-	<div>
+	<div class="candidate">
 	{% for thing in person.1.items %}
 		{% ifequal thing.0 "a_user" %}
-			<img src="{{ thing.1.fs_photo }}"> {{ thing.1.fs_firstName }}
-		{% endifequal %}
-		{% ifequal thing.0 "b_places_list" %}
-			{% for thisplace in thing.1 %}
-				{{ thisplace.place_name }} y:{{thisplace.my_count}}x t:{{thisplace.their_count}}x, 
-			{% endfor %}
+			<img src="{{ thing.1.fs_photo }}">
+			<div class="name">{{ thing.1.fs_firstName }}</div>
 		{% endifequal %}
 		{% ifequal thing.0 "c_places_count" %}
-			<div><b>{{ thing.1 }} places</b></div>
+			<div class="overlapCount">{{ thing.1 }} places</div>
 		{% endifequal %}
 	{% endfor %}
-	</div><hr/>
+	</div>
 {% endfor %}
 
+
+<div id="fixed">
+	
+	{% for person in places.items %}
+		<div id="places">
+		{% for thing in person.1.items %}
+			{% ifequal thing.0 "b_places_list" %}
+				{% for thisplace in thing.1 %}
+					{{ thisplace.place_name }} y:{{thisplace.my_count}}x t:{{thisplace.their_count}}x<br/> 
+				{% endfor %}
+			{% endifequal %}
+		{% endfor %}
+		</div>
+	{% endfor %}
+
+</div>
 </body>
 </html>
