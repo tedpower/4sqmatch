@@ -36,7 +36,15 @@ class FS_User(db.Model):
   fs_checkins_count = db.IntegerProperty()
   user_place_index = db.StringListProperty()
   last_updated = db.DateTimeProperty(auto_now_add=True)
+  list_people_overlap = db.StringListProperty()
 
+  @property
+  def get_overlaps(self):
+    q = User_Overlap.all()
+    q.filter("my_key =", self.fs_id)
+    q.order("-total_places_count")
+    return(q.fetch(limit=10))
+    
 class FS_Place(db.Model):
   # A foursquare place, with the list of people who've been there
   fs_name = db.StringProperty()
@@ -56,8 +64,22 @@ class Me_Them_Count(db.Model):
 class User_Overlap (db.Model):
   total_places_list = db.StringListProperty()
   total_places_count = db.IntegerProperty()
-  user_key = db.StringProperty()
-
+  their_key = db.StringProperty()
+  my_key = db.StringProperty()
+  
+  @property
+  def get_all_places(self):
+    listOfPlaces = []
+    for place in self.total_places_list:
+      listOfPlaces.append(Me_Them_Count.get_by_key_name(place))
+    sortedList = sorted(listOfPlaces, key=operator.attrgetter('combined_count'))
+    sortedList.reverse()
+    return sortedList    
+    
+  @property
+  def get_user(self):
+    return(FS_User.get_by_key_name(self.their_key))
+    
 def fetchJson(url, dobasicauth = False):
   # Does a GET to the specified URL and returns a dict representing its reply
   logging.info('fetching url: ' + url)
@@ -74,13 +96,19 @@ class OAuth(webapp.RequestHandler):
     
     ######### DANGER! this empties the datastore ##############
     # query = db.GqlQuery("SELECT * FROM FS_Place")
-    # for a in query:
-    #   db.delete(a)
-    # sammy = db.GqlQuery("SELECT * FROM User_Place_Count")
-    # for z in sammy:
-    #   db.delete(z)
-    # jojo = db.GqlQuery("SELECT * FROM FS_User")
-    # for q in jojo:
+    # for q in query:
+    #   db.delete(q)
+    # query = db.GqlQuery("SELECT * FROM User_Place_Count")
+    # for q in query:
+    #   db.delete(q)
+    # query = db.GqlQuery("SELECT * FROM FS_User")
+    # for q in query:
+    #   db.delete(q)
+    # query = db.GqlQuery("SELECT * FROM Me_Them_Count")
+    # for q in query:
+    #   db.delete(q)
+    # query = db.GqlQuery("SELECT * FROM User_Overlap")
+    # for q in query:
     #   db.delete(q)
     ############################################################
     
@@ -110,9 +138,7 @@ class OAuth(webapp.RequestHandler):
     logging.info("timestamp is " + str(timestamp))
     updateHistory(timestamp, currentUser)
 
-    # Ok now take that list of this user's places, and see which have overlap
-    dictOfPeopleOverlap = {}
-    
+    # Ok now take that list of this user's places, and see which have overlap    
     for place in currentUser.user_place_index:
       # go through the places and get the list of people
       visitors = FS_Place.get_by_key_name(place).fs_user_id_list
@@ -120,33 +146,38 @@ class OAuth(webapp.RequestHandler):
       for visitor in visitors:
         if visitor != currentUser.fs_id:
           # create a user overlap object
-          newMeThemCount = Me_Them_Count()
+          combinedKey = currentUser.fs_id + place + visitor
+          newMeThemCount = Me_Them_Count.get_or_insert(combinedKey)
           newMeThemCount.place_name = FS_Place.get_by_key_name(place).fs_name
           newMeThemCount.my_count = User_Place_Count.get_by_key_name(currentUser.fs_id + place).place_count
           newMeThemCount.their_count = User_Place_Count.get_by_key_name(visitor + place).place_count
           newMeThemCount.combined_count = newMeThemCount.my_count + newMeThemCount.their_count
-          if visitor not in dictOfPeopleOverlap:
+          newMeThemCount.put()
+          userOverlapKey = currentUser.fs_id + "-" + visitor
+          newUserOverlap = User_Overlap.get_or_insert(userOverlapKey)
+          if visitor not in currentUser.list_people_overlap:
             # if the the person isn't yet known to be someone with overlap, add them
-            personDict = {}
-            personDict['a_user'] = FS_User.get_by_key_name(visitor)
-            personDict['b_places_list'] = [newMeThemCount]
-            personDict['c_places_count'] = 1
-            dictOfPeopleOverlap[visitor] = personDict
+            newUserOverlap.total_places_list = [combinedKey]
+            newUserOverlap.total_places_count = 1
+            newUserOverlap.their_key = visitor
+            newUserOverlap.my_key = currentUser.fs_id
+            currentUser.list_people_overlap.append(visitor)
           else:
             # ok the visitor is in the list, now add the place
-            dictOfPeopleOverlap[visitor]['b_places_list'].append(newMeThemCount)
-            dictOfPeopleOverlap[visitor]['c_places_count'] += 1
-
-    
-    # sort the place lists
-    for visitor in dictOfPeopleOverlap:
-      listToSort = dictOfPeopleOverlap[visitor]['b_places_list']
-      newList = sorted(listToSort, key=operator.attrgetter('combined_count'))
-      newList.reverse()
-      dictOfPeopleOverlap[visitor]['b_places_list'] = newList
+            if combinedKey not in newUserOverlap.total_places_list:
+              newUserOverlap.total_places_list.append(combinedKey)
+              newUserOverlap.total_places_count += 1
+          newUserOverlap.put()
+    currentUser.put()
+            
+    # # sort the place lists
+    # for visitor in listOfPeopleOverlap:
+    #   listToSort = listOfPeopleOverlap[visitor]['b_places_list']
+    #   newList = sorted(listToSort, key=operator.attrgetter('combined_count'))
+    #   newList.reverse()
+    #   listOfPeopleOverlap[visitor]['b_places_list'] = newList
       
-    doRender(self, 'results.html', {'profile_photo' : currentUser.fs_photo,
-                                    'places' : dictOfPeopleOverlap} )    
+    doRender(self, 'results.html', {'current_user' : currentUser} )    
 
 def updateUser(currentUser, json, self_response):
   currentUser.token             = json['access_token']

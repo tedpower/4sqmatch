@@ -1,0 +1,7 @@
+indexes:
+
+- kind: User_Overlap
+  properties:
+  - name: my_key
+  - name: total_places_count
+    direction: desc
