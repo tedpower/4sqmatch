@@ -9,21 +9,18 @@
   	<script src="http://code.jquery.com/jquery-latest.js"></script>
 	<script>
 	$(document).ready(function() {
-	    $("#test").hover(function () {
-		    $("#places").hide("slow");
-	    	$("#places2").show("slow");
-	    });
-	    $("#test2").hover(function () {
-		    $("#places2").hide("slow");
-	    	$("#places").show("slow");
-	    });
+
+	
+		$("#you").click(function() {
+			$("#places").animate({"height": "toggle", "opacity": "toggle"}, "slow");
+		});
 	});
 	</script>
 </head>
 <body>
 
 	<div id="fixed">
-		<div id="places">
+		<div id="places" style="display:none;">
 			Bite                                                <br/>
 			Newark Liberty International Airport (EWR)          <br/>
 			Peels                                               <br/>

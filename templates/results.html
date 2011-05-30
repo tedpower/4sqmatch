@@ -10,12 +10,12 @@
 	<script>
 	$(document).ready(function() {
 		var currentSelection;
-		$("div.candidate").hover(function () {
+		$("div.candidate").click(function () {
 			var newId = $(this).attr('id');
 			newId = newId.replace('profile-','');
 			if (newId != currentSelection) {
-		    	$("#places-" + currentSelection).hide("slow");
-		    	$("#places-" + newId).show("slow");
+		    	$("#places-" + currentSelection).animate({"height": "toggle", "opacity": "toggle"}, "slow");
+		    	$("#places-" + newId).animate({"height": "toggle", "opacity": "toggle"}, "slow");
 				currentSelection = newId;
 			}
 		});
@@ -45,9 +45,9 @@
 	
 		<div id="fixed">
 			{% for dude in current_user.get_overlaps %}
-			<div class="places" id="places-{{ dude.get_user.fs_id }}" style="display:none;">
+			<div class="places" id="places-{{ dude.get_user.fs_id }}" style="display: none;">
 				{% for place in dude.get_all_places %}
-					{{ place.place_name }} y:{{place.my_count}}x t:{{place.their_count}}x<br/> 
+					<a href="https://foursquare.com/venue/{{ place.place_key }}">{{ place.get_place.fs_name }}</a> y:{{place.my_count}}x t:{{place.their_count}}x<br/> 
 				{% endfor %}
 			</div>
 		{% endfor %}

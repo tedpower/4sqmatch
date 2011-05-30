@@ -56,11 +56,15 @@ class User_Place_Count(db.Model):
 
 class Me_Them_Count(db.Model):
   # The overlap between the current user, another user, and a single place
-  place_name = db.StringProperty()
   my_count = db.IntegerProperty()
   their_count = db.IntegerProperty()
   combined_count = db.IntegerProperty()
+  place_key = db.StringProperty()
 
+  @property
+  def get_place(self):
+    return(FS_Place.get_by_key_name(self.place_key))
+     
 class User_Overlap (db.Model):
   total_places_list = db.StringListProperty()
   total_places_count = db.IntegerProperty()
@@ -74,12 +78,12 @@ class User_Overlap (db.Model):
       listOfPlaces.append(Me_Them_Count.get_by_key_name(place))
     sortedList = sorted(listOfPlaces, key=operator.attrgetter('combined_count'))
     sortedList.reverse()
-    return sortedList    
+    return sortedList
     
   @property
   def get_user(self):
     return(FS_User.get_by_key_name(self.their_key))
-    
+
 def fetchJson(url, dobasicauth = False):
   # Does a GET to the specified URL and returns a dict representing its reply
   logging.info('fetching url: ' + url)
@@ -110,6 +114,7 @@ class OAuth(webapp.RequestHandler):
     # query = db.GqlQuery("SELECT * FROM User_Overlap")
     # for q in query:
     #   db.delete(q)
+    # currentUser = FS_User()
     ############################################################
     
     code = self.request.get('code')
@@ -123,61 +128,54 @@ class OAuth(webapp.RequestHandler):
     timestamp = 0
     currentUser = FS_User()
     currentUserId = str(self_response['response']['user']['id'])
-    
+
     if FS_User.get_by_key_name(currentUserId) == None:
-      currentUser = FS_User(key_name=currentUserId)
-      updateUser(currentUser, json, self_response)
+     currentUser = FS_User(key_name=currentUserId)
+     updateUser(currentUser, json, self_response)
     else:
-      currentUser = FS_User.get_by_key_name(currentUserId)
-      timestamp = currentUser.last_updated
-      updateUser(currentUser, json, self_response)
+     currentUser = FS_User.get_by_key_name(currentUserId)
+     timestamp = currentUser.last_updated
+     updateUser(currentUser, json, self_response)
 
     # now update the history
     if timestamp != 0:
-      timestamp = calendar.timegm(timestamp.timetuple())
+     timestamp = calendar.timegm(timestamp.timetuple())
     logging.info("timestamp is " + str(timestamp))
     updateHistory(timestamp, currentUser)
 
     # Ok now take that list of this user's places, and see which have overlap    
     for place in currentUser.user_place_index:
-      # go through the places and get the list of people
-      visitors = FS_Place.get_by_key_name(place).fs_user_id_list
-      # Add each person along with a list of the places in common
-      for visitor in visitors:
-        if visitor != currentUser.fs_id:
-          # create a user overlap object
-          combinedKey = currentUser.fs_id + place + visitor
-          newMeThemCount = Me_Them_Count.get_or_insert(combinedKey)
-          newMeThemCount.place_name = FS_Place.get_by_key_name(place).fs_name
-          newMeThemCount.my_count = User_Place_Count.get_by_key_name(currentUser.fs_id + place).place_count
-          newMeThemCount.their_count = User_Place_Count.get_by_key_name(visitor + place).place_count
-          newMeThemCount.combined_count = newMeThemCount.my_count + newMeThemCount.their_count
-          newMeThemCount.put()
-          userOverlapKey = currentUser.fs_id + "-" + visitor
-          newUserOverlap = User_Overlap.get_or_insert(userOverlapKey)
-          if visitor not in currentUser.list_people_overlap:
-            # if the the person isn't yet known to be someone with overlap, add them
-            newUserOverlap.total_places_list = [combinedKey]
-            newUserOverlap.total_places_count = 1
-            newUserOverlap.their_key = visitor
-            newUserOverlap.my_key = currentUser.fs_id
-            currentUser.list_people_overlap.append(visitor)
-          else:
-            # ok the visitor is in the list, now add the place
-            if combinedKey not in newUserOverlap.total_places_list:
-              newUserOverlap.total_places_list.append(combinedKey)
-              newUserOverlap.total_places_count += 1
-          newUserOverlap.put()
+     # go through the places and get the list of people
+     visitors = FS_Place.get_by_key_name(place).fs_user_id_list
+     # Add each person along with a list of the places in common
+     for visitor in visitors:
+       if visitor != currentUser.fs_id:
+         # create a user overlap object
+         combinedKey = currentUser.fs_id + "-" + place + "-" + visitor
+         newMeThemCount = Me_Them_Count.get_or_insert(combinedKey)
+         newMeThemCount.place_key = place
+         newMeThemCount.my_count = User_Place_Count.get_by_key_name(currentUser.fs_id + "-" + place).place_count
+         newMeThemCount.their_count = User_Place_Count.get_by_key_name(visitor + "-" + place).place_count
+         newMeThemCount.combined_count = newMeThemCount.my_count + newMeThemCount.their_count
+         newMeThemCount.put()
+         userOverlapKey = currentUser.fs_id + "-" + visitor
+         newUserOverlap = User_Overlap.get_or_insert(userOverlapKey)
+         if visitor not in currentUser.list_people_overlap:
+           # if the the person isn't yet known to be someone with overlap, add them
+           newUserOverlap.total_places_list = [combinedKey]
+           newUserOverlap.total_places_count = 1
+           newUserOverlap.their_key = visitor
+           newUserOverlap.my_key = currentUser.fs_id
+           currentUser.list_people_overlap.append(visitor)
+         else:
+           # ok the visitor is in the list, now add the place
+           if combinedKey not in newUserOverlap.total_places_list:
+             newUserOverlap.total_places_list.append(combinedKey)
+             newUserOverlap.total_places_count += 1
+         newUserOverlap.put()
     currentUser.put()
-            
-    # # sort the place lists
-    # for visitor in listOfPeopleOverlap:
-    #   listToSort = listOfPeopleOverlap[visitor]['b_places_list']
-    #   newList = sorted(listToSort, key=operator.attrgetter('combined_count'))
-    #   newList.reverse()
-    #   listOfPeopleOverlap[visitor]['b_places_list'] = newList
-      
-    doRender(self, 'results.html', {'current_user' : currentUser} )    
+
+    doRender(self, 'results.html', {'current_user' : currentUser} )
 
 def updateUser(currentUser, json, self_response):
   currentUser.token             = json['access_token']
@@ -199,7 +197,7 @@ def updateHistory(timestamp, currentUser):
 
   for place in venue_list:
     key_str = place['venue']['id']
-    combinedKey = currentUser.fs_id + key_str
+    combinedKey = currentUser.fs_id + "-" + key_str
     # add or update the association between the person and the place
     if User_Place_Count.get_by_key_name(combinedKey) == None:      
       newUserPlaceCount = User_Place_Count(key_name=combinedKey)
@@ -227,6 +225,11 @@ def updateHistory(timestamp, currentUser):
   # update the time stamp so we know when this person last updated
   currentUser.last_updated = datetime.datetime.now()
   currentUser.put()
+
+# class DeleteCurrentUser(webapp.RequestHandler):
+#   def post(self):
+#     # Create a class that lets people delete their account
+
 
 class GetConfig(webapp.RequestHandler):
   """Returns the OAuth URI as JSON so the constants aren't in two places."""
