@@ -87,7 +87,11 @@ class User_Overlap (db.Model):
 def fetchJson(url, dobasicauth = False):
   # Does a GET to the specified URL and returns a dict representing its reply
   logging.info('fetching url: ' + url)
-  result = urllib2.urlopen(url).read()
+  result = ""
+  try:
+    result = urllib2.urlopen(url).read()
+  except Exception:
+    logging.info('Hey we had an error!')    
   logging.info('got back: ' + result)
   return simplejson.loads(result)
 

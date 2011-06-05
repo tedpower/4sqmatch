@@ -6,9 +6,13 @@
 <body>
 
 <div id="loggedOutHomepage">
-	<img src="static/logo.png" width="525" height="64" alt="Logo" id="logo">
+	<h1>Been There, Done That</h1>
 	<div id="auth"></div>
-	Created by <a href="http://twitter.com/#!/tedp">@tedp</a>
+	<div id="loading" style="display:none;">
+		<img src="static/loader.gif">
+		<p>Finding people - this takes a few seconds...</p>
+	</div>
+	<!--Created by <a href="http://twitter.com/#!/tedp">@tedp</a>-->
 </div>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
 	<script src="http://foursquare.com/scripts/apiexplorer.js"></script>
@@ -17,6 +21,11 @@
               function(config) {
                 $('#auth').append('<a href="'+config.auth_uri+'"><img src="static/connect-blue.png" width="300" height="48"></a>');
               });
+		$('#auth').click(function () {
+			$('#auth').fadeOut(1000);
+			$('#loading').delay(1200).fadeIn(1000);
+		});
+            
   	</script>
 
 </body>

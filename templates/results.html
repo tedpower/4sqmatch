@@ -14,8 +14,10 @@
 			var newId = $(this).attr('id');
 			newId = newId.replace('profile-','');
 			if (newId != currentSelection) {
-		    	$("#places-" + currentSelection).animate({"height": "toggle", "opacity": "toggle"}, "slow");
-		    	$("#places-" + newId).animate({"height": "toggle", "opacity": "toggle"}, "slow");
+				$("#profile-" + currentSelection).removeClass("focus");
+				$("#profile-" + newId).addClass("focus");
+		    	$("#places-" + currentSelection).hide();
+		    	$("#places-" + newId).fadeIn();
 				currentSelection = newId;
 			}
 		});
@@ -40,6 +42,11 @@
 			<img src="{{ dude.get_user.fs_photo }}">
 			<div class="name">{{ dude.get_user.fs_firstName }}</div>
 			<div class="overlapCount">{{ dude.total_places_count }} places</div>
+			<div>
+			{% if dude.get_user.fs_twitter %}
+				<a href="http://twitter.com/{{dude.get_user.fs_twitter}}">@{{dude.get_user.fs_twitter}}</a>
+			{% endif %}
+			&nbsp;</div>
 		</div>
 		{% endfor %}
 	

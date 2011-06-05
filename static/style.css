@@ -79,12 +79,17 @@ video {
 #loggedOutHomepage {
   text-align: center;
 }
-#logo {
+#loggedOutHomepage h1 {
   margin: 120px 0 0 0;
+  font-size: 50px;
+  font-weight: bold;
 }
-#auth {
+#loggedOutHomepage p {
+  font-size: 14px;
+  font-weight: bold;
+}
+#auth, #loading img {
   margin: 40px;
-  height: 48px;
 }
 /* Main */
 body {
@@ -112,6 +117,13 @@ body {
   margin-right: 400px;
   padding: 20px 0 0 20px;
 }
+.candidate a {
+  text-decoration: none;
+  color: black;
+}
+.candidate a:hover {
+  text-decoration: underline;
+}
 .candidate {
   float: left;
   background-color: #fff;
@@ -119,6 +131,10 @@ body {
   margin: 0 20px 20px 0;
   padding: 5px;
   border: 5px solid #EBEBEB;
+  cursor: pointer;
+}
+#them .focus {
+  border: 5px solid #2E2E2E;
 }
 #you {
   overflow: auto;
@@ -147,6 +163,14 @@ body {
 }
 #them h2 {
   background-color: #00CCFF;
+}
+/* Places Drawer */
+.places a {
+  text-decoration: none;
+  color: #fff;
+}
+.places a:hover {
+  text-decoration: underline;
 }
 /*scrollbars*/
 #fixed::-webkit-scrollbar {
